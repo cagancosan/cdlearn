@@ -1,0 +1,37 @@
+# Byte-compiled / optimized / DLL files.
+__pycache__/
+*.py[cod]
+
+# Old versions.
+old
+
+# Jupyter notebook.
+.ipynb_checkpoints
+
+# HDF5 files.
+*.h5
+
+# File format for graphs.
+*.graphml
+
+# Comma separated values.
+*.csv
+
+# Excel files.
+*.xlsx
+
+# Python pickle files.
+*.pkl
+
+# Netcdf files.
+*.nc
+
+*.[oa]
+*~
+
+# Some files auxiliary LaTex files.
+*.ps
+*.aux
+*.bcf
+*.log
+*.run.xml
