@@ -11,7 +11,9 @@ pipeline {
         }
         stage("Test") {
             steps {
-                echo "Testing ..."
+                
+                // Run all unit tests.
+                sh "docker exec --interactive --tty cdlearn-container pytest test"
             }
         }
         stage("Deploy") {
