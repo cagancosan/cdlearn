@@ -23,7 +23,7 @@ RUN apt-get update --yes --no-install-recommends && \
 
 # Create a system user using user variables.
 RUN groupadd --gid $USER_GID $USER_NAME && \
-	useradd --uid $USER_UID --gid $USER_GID --create-home $USER_NAME  
+    useradd --uid $USER_UID --gid $USER_GID --create-home $USER_NAME  
 
 # Add the non-root user to the sudo group and grant them sudo privileges.
 # No password for sudo commands.

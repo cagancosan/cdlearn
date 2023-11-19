@@ -6,8 +6,13 @@ pipeline {
         
         stage("Build Docker Image") {
             
+        // Using latest tag.    
         steps {
-      	    sh "docker build -t cdlearn-user/cdlearn:latest ."
+      	    sh """
+            docker build \
+                --tag cdlearn-user/cdlearn:latest \
+                --file ./Dockerfile .
+            """
         }
 
         }
