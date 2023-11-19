@@ -4,11 +4,6 @@ FROM continuumio/miniconda3:23.10.0-1
 # Set working directory.
 WORKDIR /cdlearn_app
 
-# User specification.
-ARG USER_NAME=cdlearn-user
-ARG USER_UID=1000
-ARG USER_GID=$USER_UID
-
 # Disable apt from prompting.
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -21,20 +16,25 @@ RUN apt-get update --yes --no-install-recommends && \
     apt-get autoremove --yes && \
     apt-get clean --yes    
 
-# Create a system user using user variables.
-RUN groupadd --gid $USER_GID $USER_NAME && \
-    useradd --uid $USER_UID --gid $USER_GID --create-home $USER_NAME  
-
-# Add the non-root user to the sudo group and grant them sudo privileges.
-# No password for sudo commands.
-RUN adduser $USER_NAME sudo && \
-    echo "%sudo ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers 
-
-# Use apt in interactive mode when we are actually using docker container.
-ENV DEBIAN_FRONTEND=dialog
-
 # Default shell inside container.
 ENV SHELL=/bin/bash
 
-# Set the newly created system user as default, instead of root.
-USER $USER_NAME     
+# Copy all files used in testing.
+COPY cdlearn cdlearn
+COPY colormaps colormaps
+COPY test test 
+COPY requirements.txt .
+
+# Install packages using conda environment.
+# See this reference: https://medium.com/@chadlagore/conda-environments-with-docker-82cdc9d25754
+ARG CONDA_VENV_NAME=lightweather
+RUN conda config --add channels conda-forge && \
+    conda create --yes --name ${CONDA_VENV_NAME} --file requirements.txt 
+
+# Add conda bin to path.
+RUN echo "source activate ${CONDA_VENV_NAME}" > ~/.bashrc
+ENV PATH /opt/conda/envs/${CONDA_VENV_NAME}/bin:$PATH
+RUN /bin/bash -c "source activate ${CONDA_VENV_NAME}"
+
+# Install packages for testing cdlearn.
+RUN pip install pytest pylint
