@@ -1,0 +1,16 @@
+version: "3.7"
+
+services:
+    cdlearn_service:
+        image: cdlearn-user/cdlearn:latest  
+        container_name: cdlearn_container  
+        build:
+            context: ..
+            dockerfile: .devcontainer/Dockerfile.dev
+            shm_size: "8gb" # When building.
+        shm_size: "8gb"     # When running.
+        volumes:
+            - ..:/cdlearn_app/
+        user: cdlearn-user
+        hostname: container
+        command: sleep infinity

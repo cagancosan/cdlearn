@@ -1,0 +1,46 @@
+// For format details, see https://aka.ms/devcontainer.json. For config options, see the
+// README at: https://github.com/devcontainers/templates/tree/main/src/python
+{
+	"name": "cdlearn",
+	
+	// Dockerfile or Docker Compose file. More info: https://containers.dev/guide/dockerfile
+	"dockerComposeFile": "docker-compose.yml",
+
+	// The name of the service VS Code should connect to once running.
+	"service": "cdlearn_service",
+
+	// Sets the default path that VS Code should open when connecting to the container.
+	"workspaceFolder": "/cdlearn_app",
+	
+	// Configure tool-specific properties.
+	"customizations": {
+		
+		// Configure properties specific to VS Code.
+		"vscode": {
+			"settings": {
+				"terminal.integrated.shell.linux": "/bin/bash"
+			},
+
+			// Extensions that should be installed inside the container when it is created.
+			"extensions": [
+				"ms-azuretools.vscode-docker",
+				"ms-python.python",
+				"ms-toolsai.jupyter",
+				"mutantdino.resourcemonitor"
+			]
+		}
+	},
+
+	// Use 'forwardPorts' to make a list of ports inside the container available locally.
+ 	"forwardPorts": ["8888"],
+
+	// Re-use the host docker socket, adding the Docker CLI to a container. Feature invokes 
+	// a script to enable using a forwarded Docker socket within a container to run Docker 
+	// commands.
+	"features": {
+		"ghcr.io/devcontainers/features/docker-outside-of-docker:1": {}
+	},
+
+	// Use 'postCreateCommand' to run commands after the container is created.
+	"postCreateCommand": "bash /cdlearn_app/.devcontainer/post_create_commands.sh"
+}
