@@ -117,7 +117,7 @@ class SpatioTemporalBlocking:
         ):
         """
         Create spatial and temporal blocks and save results in a xr.Dataset 
-        object that is available as atributte (`self.data_set_blocks`). 
+        object that is available as attribute (`self.data_set_blocks`). 
         """       
 
         # Initialization of spatial results.
@@ -197,7 +197,7 @@ class SpatioTemporalBlocking:
             pool = cycle(self.bucket_labels)    
             bucket_label = next(pool)
 
-            # All avalilable points initially.
+            # All available points initially.
             idxs_available = list(df_grid_points.index.copy(deep=True))    
 
             # Points that will not be available anymore in the next loop.
@@ -222,7 +222,7 @@ class SpatioTemporalBlocking:
                     bucket_points[bucket_label].append(p1)
                     idxs_to_remove.append(idx1)
 
-                    # Nearest neighbours of p1.
+                    # Nearest neighbors of p1.
                     nn = df_distances_reduced.\
                         loc[idx1].\
                         sort_values()[1:self.n_grid_points_in_each_block + 1]

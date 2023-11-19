@@ -23,6 +23,86 @@ import cdlearn.utils
 reload(cdlearn.utils)
 
 # Functions.
+###############################################################################    
+def categorical_most_common(
+        data_set,
+        var_code, 
+        dim="time"
+    ):
+    """
+    Most frequent value for categorical data.
+
+    Parameters
+    ----------
+    data_set : xarray Dataset object
+        Input data containing `time` dimension.         
+    var_code : str
+        Name of the variable inside `data_set` object.       
+    dim : str, optional, default is "time"
+        Statistics will be calculated along this input core dimension.
+
+    Returns
+    -------
+    data_set_most_common : xarray Dataset object
+        Results of modes (most frequent values) and counts (bin-count for the 
+        modal bins).  
+
+    Source
+    ------
+    https://stackoverflow.com/questions/56329034/is-there-a-way-to-aggregate-an-xarrray-dataarray-by-calculating-the-mode-for-eac
+    
+    Note
+    ----
+    Apply always moves core dimensions to the end. Usually axis is simply -1 
+    but scipy's mode function doesn't seem to like that. This means that this 
+    version will only work for xarray DataArray's (not Datasets).        
+    """
+    
+    data_array = getattr(data_set, var_code)
+    assert isinstance(data_array, xr.DataArray)
+
+    # Categorical values most common along time axis.
+    data_array_most_common = xr.apply_ufunc(
+        _categorical_most_common, 
+        data_array,
+        input_core_dims=[[dim]],
+        output_core_dims=[["parameters"]],
+        output_dtypes=["float32"],
+        output_sizes={"parameters": 2},        
+        vectorize=True,   
+        dask="parallelized",     
+        kwargs={
+            "axis": 0,
+            "nan_policy": "omit"
+        }
+    )
+    
+    # Turn this xarray DataArray object into an xarray Dataset object 
+    # deleting `parameters` dimension.
+    data_set_most_common = data_array_most_common.to_dataset(dim="parameters")
+    
+    # Rename unnamed variables.
+    data_set_most_common = data_set_most_common.rename_vars({
+        0: "MODE",
+        1: "COUNT"
+    })
+    
+    # Land mask.
+    if hasattr(data_set_most_common, "land_mask"):
+        data_set_most_common = data_set_most_common.where(
+            data_set_most_common.land_mask==True
+        )
+    
+    # Drop land invalid pixels. These pixels have zeroes in both `MODE` and 
+    # `COUNT` variables.
+    mask_invalid_pixels = data_set_most_common.COUNT != 0
+    data_set_most_common["MODE"] = data_set_most_common.MODE.\
+        where(mask_invalid_pixels)
+    data_set_most_common["COUNT"] = data_set_most_common.COUNT.\
+        where(mask_invalid_pixels)
+
+    return data_set_most_common
+
 ###############################################################################
 def linear_regression(
         data_set,
@@ -106,11 +186,11 @@ def linear_regression(
     
     # Put results as an xarray Dataset object.
     results = xr.Dataset(
-        data_vars={"slopes": ((dim1, dim2), r[0, :, :]), 
-                   "intercepts": ((dim1, dim2), r[1, :, :]),
-                   "r_values": ((dim1, dim2), r[2, :, :]),
-                   "p_values": ((dim1, dim2), r[3, :, :]),
-                   "std_errs": ((dim1, dim2), r[4, :, :])},
+        data_vars={"SLOPES": ((dim1, dim2), r[0, :, :]), 
+                   "INTERCEPTS": ((dim1, dim2), r[1, :, :]),
+                   "R_VALUES": ((dim1, dim2), r[2, :, :]),
+                   "P_VALUES": ((dim1, dim2), r[3, :, :]),
+                   "STD_ERRS": ((dim1, dim2), r[4, :, :])},
         coords={dim1: getattr(data_array, dim1),
                 dim2: getattr(data_array, dim2)}        
     )
@@ -217,43 +297,6 @@ def theil_slopes(
     return results
 
 ###############################################################################
-def _theil_slopes_ufunc(
-        y
-    ):
-    """
-    Wrapper function for `scipy.stats.theilslopes` to be used in a vectorized 
-    way in `theil_slopes_boosted` function.
-
-    Parameters
-    ----------
-    y : numpy array
-        One-dimensional data array.
-
-    Returns
-    -------
-    results : numpy array
-        Array containing the following results: (1) Theil slope, (2) Intercept
-        of the Theil line, (3) Lower and (4) upper bounds of the confidence 
-        interval on Theil slope.     
-    """       
-
-    # Dummy index in regression.
-    x = np.arange(y.shape[0])
-    
-    # Just one not a number is sufficient to spoil calculations.
-    if np.sum(np.isnan(y)) > 0:
-        
-        return np.array([np.nan, np.nan, np.nan, np.nan])
-
-    # Output.
-    else:
-
-        slope, intercept, low_slope, upp_slope = stats.theilslopes(y=y, x=x)
-        results = np.array([slope, intercept, low_slope, upp_slope])
-
-        return results
-
-###############################################################################
 def theil_slopes_boosted(
         data_set, 
         var_code,
@@ -261,13 +304,13 @@ def theil_slopes_boosted(
     ):
     """
     Pixel-wise trends using Theil-Sen slope estimator. Vectorized 
-    implementation of `_theil_slopes_ufunc`. For better performance, use 
-    `data_set` input with chunked dask arrays.
+    implementation of `_theil_slopes_boosted`. For better performance, use `data_set`
+    input with chunked dask arrays.
 
     Parameters
     ----------
     data_set : xarray Dataset object
-        Input data containting `time` dimension.         
+        Input data containing `time` dimension.         
     var_code : str
         Name of the variable inside `data_set` object.       
     dim : str, optional, default is "time"
@@ -289,7 +332,8 @@ def theil_slopes_boosted(
    
     # Apply vectorized function.
     results_data_array = xr.apply_ufunc(
-        _theil_slopes_ufunc, data_array,
+        _theil_slopes_boosted, 
+        data_array,
         input_core_dims=[[dim]],
         output_core_dims=[["parameters"]],
         output_dtypes=["float32"],
@@ -367,10 +411,11 @@ def pearson_correlation(
     # Loop over grid points.
     iterator = range(Y.shape[1])
     for loc in (
-        tqdm(iterator, desc="Loop over grid points") if verbose else iterator
+        tqdm(iterator, desc=f"Loop over grid points {var_code1}-{var_code2}") \
+	if verbose else iterator
     ):
 
-        # Zero dimensional data.
+        # One dimensional data.
         y = Y[:, loc]
         x = X[:, loc]
     
@@ -496,4 +541,67 @@ def spearman_rank_order_correlation(
         coords={dim1: data_set1.lat, dim2: data_set1.lon}
     )
 
-    return data_set_results      
+    return data_set_results
+
+# Private methods.
+###############################################################################
+def _categorical_most_common(
+        time_series_array,
+        axis=0,
+        nan_policy="omit"
+    ):
+    """
+    Wrapper of `scipy.stats.mode` function: Return an array of the modal 
+    (most common) value in the passed array. If there is more than one such 
+    value, only the smallest is returned. The bin-count for the modal bins is 
+    also returned.
+    """
+
+    modes, counts = stats.mode(
+        a=time_series_array,
+        axis=axis,
+        nan_policy=nan_policy
+    )
+    
+    # The squeeze kills unitary dimensions: For instance, input is (1, 10, 10)
+    # and output of squeeze will be (10, 10)-dimensional.
+    results = np.array([modes.squeeze(), counts.squeeze()])
+    
+    return results
+
+###############################################################################
+def _theil_slopes_boosted(
+        y
+    ):
+    """
+    Wrapper function for `scipy.stats.theilslopes` to be used in a vectorized 
+    way in `theil_slopes_boosted` function.
+
+    Parameters
+    ----------
+    y : numpy array
+        One-dimensional data array.
+
+    Returns
+    -------
+    results : numpy array
+        Array containing the following results: (1) Theil slope, (2) Intercept
+        of the Theil line, (3) Lower and (4) upper bounds of the confidence 
+        interval on Theil slope.     
+    """       
+
+    # Dummy index in regression.
+    x = np.arange(y.shape[0])
+    
+    # Just one not a number is sufficient to spoil calculations.
+    if np.sum(np.isnan(y)) > 0:
+        
+        return np.array([np.nan, np.nan, np.nan, np.nan])
+
+    # Output.
+    else:
+
+        slope, intercept, low_slope, upp_slope = stats.theilslopes(y=y, x=x)
+        results = np.array([slope, intercept, low_slope, upp_slope])
+
+        return results      

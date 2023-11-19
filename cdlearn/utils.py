@@ -9,6 +9,7 @@ General utilities for cdlearn package.
 # Load packages.
 import os
 import glob
+import copy
 import colorsys
 
 import numpy as np
@@ -23,15 +24,33 @@ g0 = 9.8066       # Standard acceleration due to gravity (m/s2).
 
 # Ancillary variables.
 ###############################################################################
-months_labels = [       # Labels for months.
+months_labels = [# Labels for months.
     "January", "February", "March", "April", "May", "June", 
     "July", "August", "September", "October", "November", "December"
 ]
 
 ###############################################################################
-months_labels_pt = [   # Labels for months in Portuguese.
-    "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", 
-    "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
+months_labels_pt = [# Labels for months in Portuguese.
+    "(a) Janeiro", 
+    "(b) Fevereiro", 
+    "(c) Março", 
+    "(d) Abril", 
+    "(e) Maio", 
+    "(f) Junho", 
+    "(g) Julho", 
+    "(h) Agosto", 
+    "(i) Setembro", 
+    "(j) Outubro", 
+    "(k) Novembro", 
+    "(l) Dezembro"
+]
+
+###############################################################################
+seasons_labels_pt = [# Labels for seasons in Portuguese.
+    "(a) DJF", 
+    "(b) MAM", 
+    "(c) JJA", 
+    "(d) SON"
 ]
 
 # Invariant data from ERA-INTERIM.
@@ -95,6 +114,212 @@ dict_biomes = {
     13: "Deserts and Xeric Shrublands",
     14: "Mangroves"
 }
+
+biomes_classes_pt = {
+    1: "Florestas tropicais e subtropicais úmidas de folhas largas",
+    2: "Florestas tropicais e subtropicais secas de folhas largas",
+    3: "Florestas tropicais e subtropicais coníferas",
+    4: "Florestas mistas e temperadas de folhas largas",
+    5: "Florestas temperadas coníferas",
+    6: "Florestas boreais ou Taiga",
+    7: "Pradarias, savanas e matagais tropicais e subtropicais",
+    8: "Pradarias, savanas e matagais temperadas",
+    9: "Pradarias e savanas inundadas",
+    10: "Prados e matagais montanhosos",
+    11: "Tundra",
+    12: "Florestas, bosques e arbustos mediterrâneos",
+    13: "Desertos e matagais xéricos",
+    14: "Manguezais"
+}
+
+code_colors_for_biomes = {
+    1: "#38A700",
+    2: "#CCCD65",
+    3: "#88CE66",
+    4: "#00734C",
+    5: "#000000",
+    6: "#000000",
+    7: "#FEAA01",
+    8: "#FEFF73",
+    9: "#BEE7FF",
+    10: "#D6C39D",
+    11: "#000000",
+    12: "#FE0000",
+    13: "#CC6767",
+    14: "#FE01C4"
+}
+
+# Just my convention.
+biomes_codes = {
+    1: "B1",
+    2: "B2",
+    3: "B3",    
+    4: "B4",
+    5: "B5",
+    6: "B6",
+    7: "B7",
+    8: "B8",
+    9: "B9",
+    10: "B10",
+    11: "B11",
+    12: "B12",
+    13: "B13",
+    14: "B14",
+}
+
+# Koppen-Geiger climate classifications.
+###############################################################################
+climate_classes_pt = [
+    "Tropical floresta",
+    "Tropical monção",
+    "Tropical savana",
+    "Árido deserto quente",
+    "Árido deserto frio",
+    "Árido estepe quente",
+    "Árido estepe fria",
+    "Temperado verão seco e quente",
+    "Temperado verão seco e morno",
+    "Temperado verão seco e frio",
+    "Temperado inverno seco verão quente",
+    "Temperado inverno seco verão morno",
+    "Temperado inverno seco verão frio",
+    "Temperado sem temporada seca verão quente",
+    "Temperado sem temporada seca verão morno",
+    "Temperado sem temporada seca verão frio",
+    "Frio verão seco e quente", 
+    "Frio verão seco e morno",
+    "Frio verão seco e frio", 
+    "Frio verão seco inverno muito frio",
+    "Frio inverno seco verão quente", 
+    "Frio inverno seco verão morno",
+    "Frio inverno seco verão frio", 
+    "Frio inverno seco e muito frio",
+    "Frio sem temporada seca verão quente", 
+    "Frio sem temporada seca verão morno",
+    "Frio sem temporada seca verão frio",
+    "Frio sem temporada seca inverno muito frio", 
+    "Polar tundra",
+    "Polar geada"
+]
+
+# Machine learning modelling.
+###############################################################################
+def prepare_data_codes(
+        window_size=8,
+        remove_initial_features=["E"],
+        remove_past_ndvi_predictors=True
+    ):
+
+    # Target label.
+    target = ["NDVI"]
+
+    # Initial numeric features without time delay.
+    features_numeric_initial = [
+        "P", "E", "SSM", 
+        "RZSM", "T2M", "TCC", 
+        "TISR", "VPD"
+    ]
+
+    # Initial categorical features.
+    features_categorical_initial = [
+        "KG", "TB", "CL"
+    ]
+    
+    # Remove some basic features if needed to.
+    if not remove_initial_features is None:
+
+        for var_code in remove_initial_features:
+        
+            if var_code in copy.deepcopy(features_numeric_initial):
+        
+                features_numeric_initial.remove(var_code)
+
+            elif var_code in copy.deepcopy(features_categorical_initial):
+
+                features_categorical_initial.remove(var_code)
+
+    # Update basic numeric and categoorical features if needed.
+    features_numeric = copy.deepcopy(features_numeric_initial)
+    features_categorical = copy.deepcopy(features_categorical_initial)
+
+    # Build past target values as features.
+    if not remove_past_ndvi_predictors:
+
+        for window in np.arange(1, window_size + 1)[::-1]:
+
+            new_var_code = f"NDVI_t{str(window)}"
+            features_numeric.insert(0, new_var_code)
+
+    # Build past values of basic features.
+    for var_code in features_numeric_initial:
+
+        for window in np.arange(1, window_size + 1):
+        
+            new_var_code = f"{var_code}_t{str(window)}"
+            features_numeric.append(var_code + f"_t{window}")
+
+    # Join together all predictive variables.
+    features_all = features_numeric + features_categorical
+
+    # Distinguish between categorical and numeric features.
+    features_categorical_idxs = []
+    for idx, var_code in enumerate(features_all):
+
+        if var_code in features_categorical:
+
+            features_categorical_idxs.append(idx)
+        
+    features_categorical_dict = {}
+    for var_code, idx in zip(features_all, np.arange(len(features_all))):
+        
+        if idx in features_categorical_idxs:
+            features_categorical_dict[var_code] = True
+        else:    
+            features_categorical_dict[var_code] = False
+
+    # Data physical units.    
+    features_data_units_dict = {"NDVI": ""}
+    for var_code in features_all:
+
+        if "NDVI" in var_code:
+            features_data_units_dict[var_code] = ""
+
+        elif var_code.find("P") == 0:
+            features_data_units_dict[var_code] = "mm / mês"
+
+        elif var_code.find("E") == 0:
+            features_data_units_dict[var_code] = "mm / mês"
+
+        elif var_code.find("SSM") == 0:
+            features_data_units_dict[var_code] = "m3 / m3"
+
+        elif var_code.find("RZSM") == 0:
+            features_data_units_dict[var_code] = "m3 / m3"
+
+        elif var_code.find("T2M") == 0:
+            features_data_units_dict[var_code] = "K"
+
+        elif var_code.find("TCC") == 0:
+            features_data_units_dict[var_code] = "Cobertura"                                                            
+
+        elif var_code.find("TISR") == 0:
+            features_data_units_dict[var_code] = "W / m2" 
+
+        elif var_code.find("VPD") == 0:
+            features_data_units_dict[var_code] = "kPa" 
+
+        else:
+            features_data_units_dict[var_code] = ""
+
+    return (
+        target,
+        features_numeric,
+        features_categorical,
+        features_all,
+        features_categorical_idxs, 
+        features_categorical_dict,
+        features_data_units_dict 
+    )
 
 # Functions.
 ###############################################################################

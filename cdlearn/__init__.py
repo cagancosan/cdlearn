@@ -18,11 +18,11 @@ from . import clustering
 from . import explainability
 from . import maps
 from . import metrics
-from . import non_linear
+from . import nonlinear
 from . import pixels
 from . import preprocessing
 from . import split
-from . import statistics
+from . import statistical
 from . import time_series
 from . import utils 
 
@@ -31,10 +31,11 @@ reload(clustering)
 reload(explainability)
 reload(maps)
 reload(metrics)
+reload(nonlinear)
 reload(pixels)
 reload(preprocessing)
 reload(split)
-reload(statistics)
+reload(statistical)
 reload(time_series)
 reload(utils)
 

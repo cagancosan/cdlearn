@@ -2,7 +2,7 @@
 ===============================================================================
 Maps
 
-This module is intended to plot data on maps.
+This submodule is intended to draw blank maps which data will be plotted on.
 ===============================================================================
 """
 
@@ -48,9 +48,10 @@ def general(
         cbar_mode="single",
         cbar_size="3%",
         cbar_location="right",   
-        cbar_pad=0.50,
+        cbar_pad=0.20,
         brazilian_states=False,
-        ocean=True
+        ocean=True,
+        land_color="grey"
     ):
     """
     Custom map(s). By default, it draws one global map with cylindrical 
@@ -77,8 +78,8 @@ def general(
     cbar_mode : str, optional, default is "single"
         Type of colorbar according to these options: "each", "single", "edge", 
         or None.  
-    cbar_size : 
-
+    cbar_size : size specification (see `.Size.from_any`), default: "5%"
+            Colorbar size.
     cbar_location : str, optional, default is "right"
         Location of colorbar according to these options: "left", "right", 
         "bottom", or "top". 
@@ -125,10 +126,9 @@ def general(
         axis.set_extent(map_extent, crs=projection)
         axis.set_xticks(xticks[::dticks["x"]], crs=projection)
         axis.set_yticks(yticks[::dticks["y"]], crs=projection)
-        axis.add_feature(cfeature.LAND, color="white")
+        axis.add_feature(cfeature.LAND, color=land_color)
         axis.add_feature(cfeature.COASTLINE)
         axis.add_feature(cfeature.BORDERS)
-        axis.add_feature(cfeature.LAND)
         lon_formatter = LongitudeFormatter(zero_direction_label=True)
         lat_formatter = LatitudeFormatter()
         axis.xaxis.set_major_formatter(lon_formatter)
@@ -174,10 +174,12 @@ def south_america(
         projection=ccrs.PlateCarree(),
         axes_pad=0.02,
         cbar_mode="single",
+        cbar_size="5%",
         cbar_location="right",
         cbar_pad=0.25,
         brazilian_states=True,
-        ocean=True
+        ocean=True,
+        land_color="lightgrey"
     ):
     """
     Quick single blank map for South America.
@@ -194,10 +196,12 @@ def south_america(
         projection=projection,
         axes_pad=axes_pad,
         cbar_mode=cbar_mode,
+        cbar_size=cbar_size,
         cbar_location=cbar_location,
         cbar_pad=cbar_pad,
         brazilian_states=brazilian_states,
-        ocean=ocean
+        ocean=ocean,
+        land_color=land_color
     )
     
     return axgr
