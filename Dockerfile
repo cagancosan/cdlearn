@@ -1,6 +1,9 @@
 # Bootstrapped installation of conda and python 3.x that is ready to use.
 FROM continuumio/miniconda3:23.10.0-1
 
+# Set working directory.
+WORKDIR /cdlearn_app
+
 # User specification.
 ARG USER_NAME=cdlearn-user
 ARG USER_UID=1000
