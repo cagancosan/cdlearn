@@ -4,13 +4,13 @@ pipeline {
     stages {
         stage("Build Docker Image") {
             steps { 
-                
+
                 // Dockerfile linter.
                 sh """
                 docker run \
                 --rm \
                 --interactive \
-                hadolint/hadolint < Dockerfile"
+                hadolint/hadolint < Dockerfile
                 """
                 
                 // Using latest tag.  
