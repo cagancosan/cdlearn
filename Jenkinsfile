@@ -14,7 +14,7 @@ pipeline {
                 
                 // Run all unit tests.
                 sh "docker run --rm --interactive --detach --entrypoint /bin/bash --name cdlearn-container cdlearn-user/cdlearn:latest"
-                sh "docker exec --interactive --tty cdlearn-container pytest test"
+                sh "docker exec cdlearn-container pytest test"
             }
         }
         stage("Deploy") {
