@@ -11,7 +11,7 @@ pipeline {
         }
         stage("Test") {
             steps {
-                echo "Testing ..."
+                sh "docker run --rm --name cdlearn-container cdlearn-user/cdlearn:latest pytest /cdlearn_app/test/test_clustering.py"
             }
         }
         stage("Deploy") {
