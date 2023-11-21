@@ -9,12 +9,17 @@ pipeline {
       	        sh "docker build --tag cdlearn-user/cdlearn:latest --file ./Dockerfile ."
             }
         }
-        stage("Test") {
+        stage("Test Submodules") {
             steps {
                 sh "docker run --rm --name cdlearn-container cdlearn-user/cdlearn:latest pytest /cdlearn_app/test/test_clustering.py"
             }
         }
-        stage("Deploy") {
+        stage("Code Quality Evaluation") {
+            steps {
+                sh "docker run --rm --name cdlearn-container cdlearn-user/cdlearn:latest pylint --exit-zero /cdlearn_app/cdlearn/clustering.py"
+            }
+        }
+        stage("Deploy Module") {
             steps {
                 echo "Deploying ..."
             }
