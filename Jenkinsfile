@@ -16,7 +16,7 @@ pipeline {
         }
         stage("Code Quality Evaluation") {
             steps {
-                sh "docker run --rm --name cdlearn-container cdlearn-user/cdlearn:latest pylint --exit-zero /cdlearn_app/cdlearn/clustering.py"
+                sh "docker run --rm --name cdlearn-container cdlearn-user/cdlearn:latest pylint --exit-zero --msg-template='{path}:{line}: [{msg_id}, {obj}] {msg} ({symbol})' /cdlearn_app/cdlearn > pylint.log"
             }
         }
         stage("Deploy Module") {
